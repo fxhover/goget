@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"github.com/kr/pretty"
 	"go/build"
@@ -21,7 +22,15 @@ const (
 )
 
 var wg sync.WaitGroup
-var debug bool
+var debug = flag.Bool("d", false, "debug mode")
+
+func init() {
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage of: %s\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+	flag.Parse()
+}
 
 func main() {
 	log.SetFlags(0)
@@ -66,17 +75,19 @@ func findPackages() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	if debug {
-		pretty.Println(dp)
-	}
+	debugln("dp:", dp)
+
 	files, err := globAll(dp.Dir, "*.go")
 	if err != nil {
 		return nil, err
 	}
+	debugln("find go files:", files)
 	var pkgs []string
 	for _, file := range files {
 		if content, err := ioutil.ReadFile(file); err == nil {
-			pkgs = append(pkgs, findNetworkPkgs(string(content))...)
+			f_pkgs := findNetworkPkgs(string(content))
+			debugln(fmt.Sprintf("file: %s, find pkgs: %s", file, f_pkgs))
+			pkgs = append(pkgs, f_pkgs...)
 		}
 	}
 	return removeDuplicate(pkgs), nil
@@ -162,5 +173,11 @@ func idDir(path string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func debugln(msg ...interface{}) {
+	if *debug {
+		pretty.Println(msg...)
 	}
 }
