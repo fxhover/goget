@@ -1,32 +1,32 @@
 package main
 
 import (
-	"go/build"
 	"fmt"
-	"os"
-	"path/filepath"
-	"log"
 	"github.com/kr/pretty"
+	"go/build"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
-	"io/ioutil"
-	"os/exec"
 	"sync"
 )
 
 const (
-	NET_PKG_PATTERN1 = `import\s+"(\w+\.\w+/.*)"` 
+	NET_PKG_PATTERN1 = `import\s+"(\w+\.\w+/.*)"`
 	NET_PKG_PATTERN2 = `(?s)import\s+\((.*?)\)`
 	NET_PKG_PATTERN3 = `"(\w+\.\w+/.*)"`
 )
 
 var wg sync.WaitGroup
-var debug bool 
+var debug bool
 
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("goget:")
-	
+
 	pkgs, err := findPackages()
 	if err != nil {
 		log.Fatalln(err)
@@ -44,16 +44,16 @@ func goget(pkg string) {
 	log.Printf("Find package: %s", pkg)
 	command := fmt.Sprintf("go get %s", pkg)
 	log.Println(command)
-    cmd := exec.Command("/bin/sh", "-c", command)
-    var res []byte
-    res, err := cmd.CombinedOutput()
-    if err != nil {
-    	log.Fatalln(err)
-    }
-    result := fmt.Sprintf("%s", res)
-    if result != "" {
-    	log.Println(result)
-    }
+	cmd := exec.Command("/bin/sh", "-c", command)
+	var res []byte
+	res, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	result := fmt.Sprintf("%s", res)
+	if result != "" {
+		log.Println(result)
+	}
 }
 
 //查找所有.go文件，找出import的网络包
@@ -64,14 +64,14 @@ func findPackages() ([]string, error) {
 	}
 	dp, err := build.ImportDir(dir, build.FindOnly)
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 	if debug {
 		pretty.Println(dp)
 	}
 	files, err := globAll(dp.Dir, "*.go")
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 	var pkgs []string
 	for _, file := range files {
@@ -84,7 +84,7 @@ func findPackages() ([]string, error) {
 
 //根据文件内容匹配出网络包
 func findNetworkPkgs(content string) []string {
-	var pkgs []string 
+	var pkgs []string
 	regex := regexp.MustCompile(NET_PKG_PATTERN1)
 	res := regex.FindAllStringSubmatch(content, -1)
 	for _, pkg := range res {
@@ -124,7 +124,7 @@ func globAll(path string, patterns ...string) ([]string, error) {
 	var files []string
 	root, err := filepath.Glob(string(filepath.Join(path, "*")))
 	if err != nil {
-		return nil, err 
+		return nil, err
 	}
 	for _, file := range root {
 		for _, pattern := range patterns {
@@ -136,12 +136,12 @@ func globAll(path string, patterns ...string) ([]string, error) {
 		if idDir(file) && !filepath.HasPrefix(file, ".") {
 			sub_files, err := globAll(file, patterns...)
 			if err != nil {
-				return nil, err 
+				return nil, err
 			}
 			files = append(files, sub_files...)
 		}
 	}
-	return files, nil 
+	return files, nil
 }
 
 //判断一个路径是否是目录
